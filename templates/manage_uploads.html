@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+</style>
+<head><title>Your Uploaded Documents</title></head>
+<body>
+  <h2>Your Uploaded Documents</h2>
+  {% if documents %}
+    <ul>
+      {% for doc in documents %}
+        <li>
+          {{ doc.title }} | {{ doc.type }} | {{ doc.created_at }}
+          {% if doc.is_digital %}
+            - <a href="{{ url_for('static', filename='uploads/' ~ doc.title) }}" download>Download</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No uploads yet.</p>
+  {% endif %}
+</body>
+</html>

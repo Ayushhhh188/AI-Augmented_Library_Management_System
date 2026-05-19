@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Library Management System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* Dropdowns */
+    #dropdown-overlays {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+    }
+
+    .custom-dropdown {
+      position: absolute;
+      display: none;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .custom-dropdown a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 6px 12px;
+    }
+
+    .custom-dropdown a:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Chatbot icon */
+    #chatbot-icon {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #444;
+      color: white;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 24px;
+      z-index: 10000;
+    }
+
+    /* Chatbot modal */
+    #chatbotModal {
+      display: none;
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 320px;
+      height: 420px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      z-index: 10001;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #chatbotModal header {
+      background: #333;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+
+    #chatbot-messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    #chatbot-form {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+
+    #chatbot-input {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      font-size: 14px;
+    }
+
+    #chatbot-submit {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <img src="{{ url_for('static', filename='images/CCL.jpg') }}" alt="Company Logo">
+    </div>
+    <div class="site-title">
+      <h1>Central Coalfields Limited</h1>
+    </div>
+    <nav>
+      <a href="{{ url_for('home') }}">Home</a>
+      <a href="#" onclick="toggleDropdown(event, 'uploadDropdown')">Upload</a>
+      <a href="#" onclick="toggleDropdown(event, 'searchDropdown')">Search</a>
+      {% if session.user_role == 'admin' %}
+        <a href="#" onclick="openModal('adminToolsModal')">Admin Tools</a>
+      {% endif %}
+
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </nav>
+  </header>
+
+  <!-- MAIN CONTENT --> 
+   <!-- DEBUG -->
+
+
+  <main class="page-background">
+    <div class="container">
+      <h2>Welcome to the Central Library</h2>
+      <p>Use the navigation above to manage and access the digital and physical documents.</p>
+
+      <div class="card">
+        <h3>Quick Access</h3>
+        <p>Jump directly to your frequently used resources or explore new uploads.</p>
+        <button onclick="toggleDropdown(event, 'searchDropdown')">Search Documents</button>
+      </div>
+
+      {% if session.user_role == 'admin' %}
+      <div class="card">
+       <h3>Upload New Document</h3>
+       <p>Admins can upload new books, manuals, reports and more to keep the system updated.</p>
+       <button onclick="toggleDropdown(event, 'uploadDropdown')">Upload</button>
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <h3>Need Help?</h3>
+        <p>Use our AI-powered assistant to get answers and locate documents quickly.</p>
+        <button onclick="toggleChatbot()">Ask Chatbot</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- CHATBOT ICON -->
+  <div id="chatbot-icon" onclick="toggleChatbot()">👨</div>
+
+  <!-- CHATBOT MODAL -->
+  <div id="chatbotModal">
+    <header>AI Library Assistant</header>
+    <div id="chatbot-messages"></div>
+    <form id="chatbot-form" onsubmit="sendChat(event)">
+      <input id="chatbot-input" type="text" placeholder="Ask me something..." required />
+      <button id="chatbot-submit">➤</button>
+    </form>
+  </div>
+
+  <!-- DROPDOWN MENUS -->
+  <div id="dropdown-overlays">
+    <div id="searchDropdown" class="custom-dropdown">
+      <a href="#" onclick="openModal('searchTitleModal')">Search by Title</a>
+      <a href="#" onclick="openModal('searchAdvancedModal')">Advanced Search</a>
+      <a href="#" onclick="openModal('searchRecentModal')">Recently Added</a>
+    </div>
+    <div id="uploadDropdown" class="custom-dropdown">
+      <a href="#" onclick="openModal('uploadNewModal')">New Document</a>
+      <a href="#" onclick="openModal('uploadBulkModal')">Bulk Upload</a>
+      <a href="#" onclick="openModal('uploadManageModal')">Manage Uploads</a>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  {% set modals = [
+      ('searchTitleModal', 'Search by Title', '/search/title', [('text', 'title', 'Enter document title...')]),
+      ('searchAdvancedModal', 'Advanced Search', '/search/advanced', [('text', 'author', 'Enter author name...'), ('date', 'date', ''), ('text', 'category', 'Enter category...')]),
+      ('uploadNewModal', 'New Document Upload', '/upload/new', [('text', 'title', 'Enter document title...'), ('file', 'document', '')]),
+      ('uploadBulkModal', 'Bulk Upload', '/upload/bulk', [('file', 'documents', '')])
+  ] %}
+
+  {% for id, title, action, fields in modals %}
+  <div id="{{ id }}" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('{{ id }}')">&times;</span>
+      <h2>{{ title }}</h2>
+      <form action="{{ action }}"
+            method="{{ 'GET' if 'search' in id else 'POST' }}"
+            enctype="multipart/form-data">
+        {% for type, name, placeholder in fields %}
+        <label for="{{ name }}">{{ name.replace('_', ' ').title() }}:</label>
+        <input type="{{ type }}" id="{{ name }}" name="{{ name }}"
+               placeholder="{{ placeholder }}" {% if type != 'file' %}required{% endif %}
+               {% if type == 'file' and name == 'documents' %}multiple{% endif %}>
+        {% endfor %}
+        <button type="submit">{{ 'Upload' if 'upload' in id else 'Search' }}</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Extra Modals -->
+  <div id="searchRecentModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('searchRecentModal')">&times;</span>
+      <h2>Recently Added</h2>
+      <p>Showing the most recent documents added to the library.</p>
+      <button onclick="window.location.href='/search/recent'">View Now</button>
+    </div>
+  </div>
+
+  <div id="uploadManageModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('uploadManageModal')">&times;</span>
+      <h2>Manage Uploads</h2>
+      <p>View and manage your uploaded files.</p>
+      <button onclick="window.location.href='/upload/manage'">Go to Upload Manager</button>
+    </div>
+  </div>
+
+  {% if session.user_role == 'admin' %}
+  <div id="adminToolsModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('adminToolsModal')">&times;</span>
+      <h2>Admin Tools</h2>
+      <ul>
+        <li><a href="{{ url_for('index') }}">Go to Admin Dashboard</a></li>
+        <li><a href="{{ url_for('index') }}">Manage Users</a></li>
+        <li><a href="{{ url_for('index') }}">Manage Documents</a></li>
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- FOOTER -->
+  <footer>
+    &copy; This project is developed for Internship purposes. All content is for educational use only.
+  </footer>
+
+  <!-- SCRIPT -->
+  <script>
+    function openModal(id) {
+      document.getElementById(id).style.display = 'flex';
+      document.body.classList.add('modal-open');
+      closeDropdowns();
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }
+
+    function toggleDropdown(event, dropdownId) {
+      event.stopPropagation();
+      const dropdown = document.getElementById(dropdownId);
+      const isVisible = dropdown.style.display === 'block';
+      closeDropdowns();
+      if (!isVisible) {
+        const rect = event.target.getBoundingClientRect();
+        dropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
+        dropdown.style.left = `${rect.left + window.scrollX}px`;
+        dropdown.style.display = 'block';
+      }
+    }
+
+    function closeDropdowns() {
+      document.querySelectorAll('.custom-dropdown').forEach(d => d.style.display = 'none');
+    }
+
+    window.addEventListener('click', closeDropdowns);
+
+    function toggleChatbot() {
+      const modal = document.getElementById('chatbotModal');
+      const chatBox = document.getElementById('chatbot-messages');
+      const isOpening = modal.style.display !== 'flex';
+      modal.style.display = isOpening ? 'flex' : 'none';
+       if (isOpening && chatBox.innerHTML.trim() === '') {
+         chatBox.innerHTML += `
+             <div style="
+              margin-bottom: 12px;
+              padding: 10px;
+              background: #f4f4f4;
+              border-radius: 10px;
+              line-height: 1.5;
+            ">
+             <strong>👨 Assistant:</strong><br>
+              Hello! How can I help you today?
+            </div>
+          `;  
+       }
+    }
+
+    async function sendChat(event) {
+      event.preventDefault();
+      const input = document.getElementById('chatbot-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      const chatBox = document.getElementById('chatbot-messages');
+      chatBox.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
+      input.value = '';
+
+      try {
+        const response = await fetch('/chatbot/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+
+        // Replace file names with download links
+        const fileRegex = /\(([^)]+)\)/g;
+        const formattedReply = data.reply.replace(fileRegex, (match, p1) => {
+          if (/\.(pdf|docx?|txt)$/i.test(p1)) {
+            return `(<a href="/static/uploads/${p1}" target="_blank">${p1}</a>)`;
+          }
+          return match;
+        });
+
+        chatBox.innerHTML += `<div><strong>Bot:</strong> ${formattedReply}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        chatBox.innerHTML += `<div><strong>Bot:</strong> Something went wrong. Try again later.</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

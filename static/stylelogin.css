@@ -1,0 +1,132 @@
+/* Apple-inspired CSS for Login Page */
+
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #f2f2f2, #e6e6e6);
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.logo img {
+    width: 60px;
+    height: auto;
+}
+
+.site-title h1 {
+    font-size: 1.8rem;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.login-container {
+    background: #fff;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-container h2 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: #222;
+}
+
+.role-toggle {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.role-toggle button {
+    background-color: #e5e5e5;
+    border: none;
+    padding: 10px 20px;
+    margin: 0 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.role-toggle button.active {
+    background-color: #007aff;
+    color: #fff;
+}
+
+form label {
+    display: block;
+    text-align: left;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+form input {
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: border 0.3s;
+}
+
+form input:focus {
+    outline: none;
+    border-color: #007aff;
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+form button[type="submit"] {
+    width: 100%;
+    padding: 12px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form button[type="submit"]:hover {
+    background-color: #005fcc;
+}
+
+.register-link {
+    margin-top: 20px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 500px) {
+    .login-container {
+        padding: 30px 20px;
+    }
+
+    .site-title h1 {
+        font-size: 1.5rem;
+    }
+}

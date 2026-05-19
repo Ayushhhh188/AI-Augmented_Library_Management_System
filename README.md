@@ -1,4 +1,4 @@
-# Central Coalfields Limited AI-Augmented Library Management System
+# AI-Augmented Library Management System
 
 ## Overview
 

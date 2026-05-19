@@ -4,6 +4,8 @@
 
 The Central Coalfields Limited AI-Augmented Library Management System is a full-stack enterprise document management and retrieval platform developed as an internship project. The system combines traditional CRUD-based digital library operations with modern Retrieval-Augmented Generation (RAG) architecture powered by local Small Language Models (SLMs), vector databases, semantic search, and AI-assisted document querying.
 
+![image alt](https://github.com/Ayushhhh188/AI-Augmented_Library_Management_System/blob/3d82ad2f9ab882cfeb1922d8f55a45ffc0072d7e/static/Screenshot%202026-05-20%20003757.png)
+
 ### The platform enables employees to:
 - Upload and manage enterprise documents
 - Perform intelligent document searches

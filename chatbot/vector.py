@@ -2,9 +2,7 @@ import chromadb
 
 from chatbot.embeddings import create_embedding
 
-# -------------------------------
-# ChromaDB
-# -------------------------------
+
 client = chromadb.PersistentClient(
     path="vector_db"
 )
@@ -13,35 +11,76 @@ collection = client.get_or_create_collection(
     name="documents"
 )
 
-# -------------------------------
-# Add Chunks
-# -------------------------------
-def add_to_vector_db(chunks, title, file_path):
 
-    for i, chunk in enumerate(chunks):
+# ---------------------------------
+# ADD DOCUMENTS
+# ---------------------------------
+def add_to_vector_db(chunked_documents):
 
-        embedding = create_embedding(chunk)
+    for doc in chunked_documents:
+
+        text = doc["text"]
+
+        page = doc["page"]
+
+        metadata = doc["metadata"]
+
+        chunk_id = doc["chunk_id"]
+
+        embedding = create_embedding(text)
 
         collection.add(
-            documents=[chunk],
+            documents=[text],
             embeddings=[embedding],
-            ids=[f"{title}_{i}"],
+            ids=[f"{metadata['filename']}_{chunk_id}"],
             metadatas=[{
-                "title": title,
-                "source": file_path
+                "source": metadata.get("filename"),
+                "document_type": metadata.get("document_type"),
+                "department": metadata.get("department"),
+                "tags": ", ".join(metadata.get("tags", [])),
+                "page": page,
+                "access_level": metadata.get("access_level")
             }]
         )
 
-# -------------------------------
-# Search
-# -------------------------------
-def search_documents(query):
+
+# ---------------------------------
+# SEARCH
+# ---------------------------------
+def search_documents(query, top_k=15):
 
     query_embedding = create_embedding(query)
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=5
+        n_results=top_k
     )
 
-    return results["documents"][0]
+    documents = results["documents"][0]
+    metadatas = results["metadatas"][0]
+
+    distances = results["distances"][0]
+
+    final_results = []
+
+    for doc, meta, score in zip(
+        documents,
+        metadatas,
+        distances
+    ):
+
+        similarity = 1 - score
+
+        # -----------------------------
+        # HALLUCINATION FILTER
+        # -----------------------------
+        if similarity < 0.15:
+            continue
+
+        final_results.append({
+            "text": doc,
+            "metadata": meta,
+            "similarity": round(similarity, 3)
+        })
+
+    return final_results

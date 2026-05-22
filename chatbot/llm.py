@@ -1,6 +1,8 @@
 import requests
 
-OLLAMA_MODEL = "phi3"
+
+OLLAMA_MODEL = "mistral"
+
 
 def generate_answer(prompt):
 
@@ -11,7 +13,15 @@ def generate_answer(prompt):
             "prompt": prompt,
             "stream": False,
             "options": {
-                "temperature": 0.1
+
+              
+                "temperature": 0,
+
+                "top_p": 0.2,
+
+                "num_predict": 400,
+
+                "repeat_penalty": 1.2
             }
         }
     )

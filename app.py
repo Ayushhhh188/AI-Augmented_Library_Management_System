@@ -15,7 +15,7 @@ from authlib.integrations.flask_client import OAuth
 # Chatbot Modules
 # -------------------------------
 from chatbot.document_loader import extract_text
-from chatbot.chunking import chunk_text
+from chatbot.chunking import chunk_documents
 from chatbot.vector import add_to_vector_db
 from chatbot.rag_pipeline import ask_rag
 
@@ -259,14 +259,15 @@ def upload_new():
         # -------------------------------
         # RAG INGESTION PIPELINE
         # -------------------------------
+        pages = extract_text(save_path)
         text = extract_text(save_path)
 
-        chunks = chunk_text(text)
+        chunked_documents = chunk_documents(
+            pages
+        )
 
         add_to_vector_db(
-            chunks=chunks,
-            title=title,
-            file_path=save_path
+            chunked_documents
         )
 
         return redirect(

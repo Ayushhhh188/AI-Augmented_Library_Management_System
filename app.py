@@ -14,11 +14,13 @@ from chatbot.document_loader import load_documents
 from chatbot.chunking import chunk_text
 from chatbot.vector import add_chunks_to_vector_db
 from chatbot.rag_pipeline import run_rag_pipeline
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 MONGO_URI = os.getenv("MONGO_URI")
 client = MongoClient(MONGO_URI)

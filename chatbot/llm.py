@@ -1,29 +1,44 @@
-import requests
+import os
+import re
+from google import genai
+from google.genai import types
+
+MODEL = "gemini-3.5-flash"
 
 
-OLLAMA_MODEL = "mistral"
+def _clean_response(text: str) -> str:
+    """
+    Strip any chain-of-thought / reasoning that leaks into the output.
+    """
+    lines = text.splitlines()
+    clean = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        if re.match(r'^\*\s*\*[^*]+\*\s*[:\*]', stripped):
+            continue
+        if re.match(r'^\*\s*["\u201c]', stripped):
+            continue
+        if re.match(r'^\*\s*(check|draft|note|wait|let me|self|word count|sentence|final polish|final draft|final version|final check|constraint)', stripped, re.IGNORECASE):
+            continue
+
+        clean.append(line)
+
+    result = "\n".join(clean).strip()
+    return result if result else text.strip()
 
 
-def generate_answer(prompt):
+def generate_response(prompt: str) -> str:
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": OLLAMA_MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-
-              
-                "temperature": 0,
-
-                "top_p": 0.2,
-
-                "num_predict": 400,
-
-                "repeat_penalty": 1.2
-            }
-        }
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.1,
+            top_p=0.9,
+            max_output_tokens=1200,  # Raised — long procedural answers need room
+        ),
     )
-
-    return response.json()["response"]
+    return _clean_response(response.text)

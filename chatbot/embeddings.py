@@ -2,13 +2,10 @@ from sentence_transformers import SentenceTransformer
 
 
 embedding_model = SentenceTransformer(
-    "BAAI/bge-base-en-v1.5"
+    "all-MiniLM-L6-v2"
 )
 
 
-def create_embedding(text):
+def get_embedding(text):
 
-    return embedding_model.encode(
-        text,
-        normalize_embeddings=True
-    ).tolist()
+    return embedding_model.encode(text).tolist()

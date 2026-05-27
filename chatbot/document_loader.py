@@ -1,100 +1,58 @@
 import os
-import json
 import PyPDF2
-
 from docx import Document
 
 
-METADATA_FILE = "metadata/documents.json"
+UPLOAD_FOLDER = "static/uploads"
 
 
-def load_metadata():
+def load_documents():
 
-    try:
-        with open(METADATA_FILE, "r", encoding="utf-8") as f:
-            metadata_list = json.load(f)
+    documents = []
 
-        metadata_map = {
-            item["filename"]: item
-            for item in metadata_list
-        }
+    for filename in os.listdir(UPLOAD_FOLDER):
 
-        return metadata_map
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
 
-    except Exception as e:
-        print("Metadata Load Error:", e)
-        return {}
+        text = ""
 
+        try:
 
-DOCUMENT_METADATA = load_metadata()
+            # TXT
+            if filename.lower().endswith(".txt"):
 
+                with open(filepath, "r", encoding="utf-8") as f:
+                    text = f.read()
 
-def extract_text(file_path):
+            # PDF
+            elif filename.lower().endswith(".pdf"):
 
-    pages = []
+                with open(filepath, "rb") as f:
 
-    filename = os.path.basename(file_path)
+                    reader = PyPDF2.PdfReader(f)
 
-    metadata = DOCUMENT_METADATA.get(filename, {})
+                    text = "\n".join(
+                        [page.extract_text() or "" for page in reader.pages]
+                    )
 
-    try:
+            # DOCX
+            elif filename.lower().endswith((".docx", ".doc")):
 
-        # -----------------------------
-        # TXT FILES
-        # -----------------------------
-        if file_path.lower().endswith(".txt"):
+                doc = Document(filepath)
 
-            with open(file_path, "r", encoding="utf-8") as f:
+                text = "\n".join(
+                    [para.text for para in doc.paragraphs]
+                )
 
-                text = f.read()
+            if text.strip():
 
-                pages.append({
-                    "text": text,
-                    "page": 1,
-                    "metadata": metadata
+                documents.append({
+                    "title": filename,
+                    "content": text
                 })
 
-        # -----------------------------
-        # PDF FILES
-        # -----------------------------
-        elif file_path.lower().endswith(".pdf"):
+        except Exception as e:
 
-            with open(file_path, "rb") as f:
+            print(f"Error loading {filename}: {e}")
 
-                reader = PyPDF2.PdfReader(f)
-
-                for page_num, page in enumerate(reader.pages, start=1):
-
-                    text = page.extract_text() or ""
-
-                    if len(text.strip()) > 50:
-
-                        pages.append({
-                            "text": text,
-                            "page": page_num,
-                            "metadata": metadata
-                        })
-
-        # -----------------------------
-        # DOCX FILES
-        # -----------------------------
-        elif file_path.lower().endswith((".doc", ".docx")):
-
-            docx_file = Document(file_path)
-
-            text = "\n".join([
-                p.text
-                for p in docx_file.paragraphs
-            ])
-
-            pages.append({
-                "text": text,
-                "page": 1,
-                "metadata": metadata
-            })
-
-    except Exception as e:
-
-        print("Extraction Error:", e)
-
-    return pages
+    return documents

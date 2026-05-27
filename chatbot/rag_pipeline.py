@@ -1,134 +1,44 @@
-from chatbot.vector import search_documents
-
-from chatbot.llm import generate_answer
-
+from chatbot.vector import search_vector_db
 from chatbot.prompts import build_prompt
+from chatbot.llm import generate_response
 
-from chatbot.reranker import rerank
+
+def run_rag_pipeline(question: str) -> str:
+    results = search_vector_db(question, top_k=8)  # Fetch more chunks
+
+    docs = results.get("documents", [[]])[0]
+
+    if not docs:
+        return "The information is not present in the provided documents."
+
+    # Deduplicate and use top 5 chunks (up from 3)
+    context_parts = []
+    seen_chunks = set()
+
+    for doc in docs[:5]:
+        cleaned = " ".join(doc.split())
+        if not _is_near_duplicate(cleaned, seen_chunks):
+            seen_chunks.add(cleaned)
+            context_parts.append(cleaned)
+
+    if not context_parts:
+        return "The information is not present in the provided documents."
+
+    context = "\n\n".join(context_parts)
+
+    prompt = build_prompt(context=context, question=question)
+    return generate_response(prompt)
 
 
-def ask_rag(query):
-
-    # ---------------------------------
-    # INITIAL VECTOR RETRIEVAL
-    # ---------------------------------
-    retrieved_chunks = search_documents(
-        query,
-        top_k=12
-    )
-
-    # ---------------------------------
-    # NO DOCUMENTS FOUND
-    # ---------------------------------
-    if not retrieved_chunks:
-
-        return (
-            "I could not find relevant information "
-            "in the uploaded documents."
-        )
-
-    # ---------------------------------
-    # RERANK DOCUMENTS
-    # ---------------------------------
-    retrieved_chunks = rerank(
-        query,
-        retrieved_chunks
-    )
-
-    # ---------------------------------
-    # STILL NO DOCUMENTS AFTER RERANK
-    # ---------------------------------
-    if not retrieved_chunks:
-
-        return (
-            "I could not find relevant information "
-            "in the uploaded documents."
-        )
-
-    contexts = []
-
-    used_sources = set()
-
-    # ---------------------------------
-    # BUILD STRUCTURED CONTEXT
-    # ---------------------------------
-    for idx, item in enumerate(retrieved_chunks):
-
-        text = item["text"]
-
-        metadata = item["metadata"]
-
-        similarity = item.get(
-            "similarity",
-            0
-        )
-
-        rerank_score = item.get(
-            "rerank_score",
-            0
-        )
-
-        source = metadata.get(
-            "source",
-            "Unknown"
-        )
-
-        page = metadata.get(
-            "page",
-            "N/A"
-        )
-
-        department = metadata.get(
-            "department",
-            "General"
-        )
-
-        doc_type = metadata.get(
-            "document_type",
-            "Document"
-        )
-
-        citation = (
-            f"[SOURCE: {source} | PAGE: {page}]"
-        )
-
-        used_sources.add(citation)
-
-        formatted_context = f"""
-DOCUMENT #{idx + 1}
-
-DOCUMENT TYPE: {doc_type}
-
-DEPARTMENT: {department}
-
-VECTOR SIMILARITY: {similarity}
-
-RERANK SCORE: {rerank_score}
-
-{citation}
-
-CONTENT:
-{text}
-"""
-
-        contexts.append(formatted_context)
-
-    # ---------------------------------
-    # FINAL CONTEXT
-    # ---------------------------------
-    final_context = "\n\n".join(contexts)
-
-    # ---------------------------------
-    # BUILD PROMPT
-    # ---------------------------------
-    prompt = build_prompt(
-        final_context,
-        query
-    )
-
-    # ---------------------------------
-    # GENERATE ANSWER
-    # ---------------------------------
-    answer = generate_answer(prompt)
-
-    return answer
+def _is_near_duplicate(text: str, existing: set, threshold: float = 0.8) -> bool:
+    words = set(text.lower().split())
+    if not words:
+        return False
+    for other in existing:
+        other_words = set(other.lower().split())
+        if not other_words:
+            continue
+        overlap = len(words & other_words) / min(len(words), len(other_words))
+        if overlap >= threshold:
+            return True
+    return False

@@ -1,41 +1,13 @@
-def build_prompt(context, question):
+def build_prompt(context: str, question: str) -> str:
+    return f"""You are a document assistant. Answer the question using ONLY the information provided.
 
-    return f"""
-You are an enterprise AI assistant for Central Coalfields Limited.
-
-STRICT RULES:
-
-1. Answer ONLY from provided context
-2. Never use outside knowledge
-3. Never guess
-4. Never hallucinate
-5. If information is missing, say:
-   "I could not find this information in the uploaded documents."
-
-6. Cite sources exactly like:
-   [SOURCE: filename | PAGE: number]
-
-7. If multiple documents support the answer,
-   cite all relevant sources.
-
-8. Do not generate policies, rules,
-   procedures, or technical details
-   unless explicitly present in context.
-
-9. Keep answers factual and concise.
-
-==================================================
-
-CONTEXT:
-
+Context:
 {context}
 
-==================================================
+Question: {question}
 
-QUESTION:
-{question}
+Write a clear answer in plain prose. Do not use bullet points, step labels, or numbered lists.
+Do not quote the context. Do not show reasoning, drafts, or notes.
+Only use facts from the context. If the answer is not in the context, say: "The information is not present in the provided documents."
 
-==================================================
-
-ANSWER:
-"""
+Answer:"""

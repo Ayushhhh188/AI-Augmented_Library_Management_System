@@ -1,55 +1,21 @@
-import os
-
-from chatbot.document_loader import extract_text
-
-from chatbot.chunking import chunk_documents
-
-from chatbot.vector import add_to_vector_db
+from chatbot.document_loader import load_documents
+from chatbot.chunking import chunk_text
+from chatbot.vector import add_chunks_to_vector_db
 
 
-UPLOAD_FOLDER = "static/uploads"
+documents = load_documents()
 
+for doc in documents:
 
-def ingest_documents():
+    chunks = chunk_text(doc["content"])
 
-    for filename in os.listdir(UPLOAD_FOLDER):
+    add_chunks_to_vector_db(
+        chunks,
+        metadata={
+            "title": doc["title"]
+        }
+    )
 
-        file_path = os.path.join(
-            UPLOAD_FOLDER,
-            filename
-        )
+    print(f"Ingested: {doc['title']}")
 
-        print(f"\nIngesting: {filename}")
-
-        # -----------------------------
-        # Extract pages + metadata
-        # -----------------------------
-        pages = extract_text(file_path)
-
-        print(f"Pages extracted: {len(pages)}")
-
-        # -----------------------------
-        # Chunk
-        # -----------------------------
-        chunked_documents = chunk_documents(
-            pages
-        )
-
-        print(
-            f"Chunks created: "
-            f"{len(chunked_documents)}"
-        )
-
-        # -----------------------------
-        # Store
-        # -----------------------------
-        add_to_vector_db(
-            chunked_documents
-        )
-
-        print("Stored in vector DB")
-
-
-if __name__ == "__main__":
-
-    ingest_documents()
+print("Vector DB build complete.")

@@ -1,22 +1,53 @@
 <!DOCTYPE html>
-<html>
-</style>
-<head><title>Your Uploaded Documents</title></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Uploaded Documents</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 40px; }
+        table { border-collapse: collapse; width: 90%; margin: 30px auto; background: white;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+        th, td { padding: 14px 20px; text-align: left; }
+        th { background: #2c3e50; color: white; font-weight: 600; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        tr:hover { background: #e6f7ff; }
+        a { color: #2980b9; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        p { text-align: center; font-size: 1.1rem; margin-top: 40px; }
+        h2 { text-align: center; color: #2c3e50; }
+    </style>
+</head>
 <body>
-  <h2>Your Uploaded Documents</h2>
-  {% if documents %}
-    <ul>
-      {% for doc in documents %}
-        <li>
-          {{ doc.title }} | {{ doc.type }} | {{ doc.created_at }}
-          {% if doc.is_digital %}
-            - <a href="{{ url_for('static', filename='uploads/' ~ doc.title) }}" download>Download</a>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>No uploads yet.</p>
-  {% endif %}
+    <h2>Your Uploaded Documents</h2>
+    {% if documents %}
+    <table>
+        <tr>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Department</th>
+            <th>Digital</th>
+            <th>Uploaded At</th>
+            <th>File</th>
+        </tr>
+        {% for doc in documents %}
+        <tr>
+            <td>{{ doc.title }}</td>
+            <td>{{ doc.type }}</td>
+            <td>{{ doc.department }}</td>
+            <td>{{ 'Yes' if doc.is_digital else 'No' }}</td>
+            <td>{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else 'N/A' }}</td>
+            <td>
+                {% if doc.is_digital and doc.file_path %}
+                    <a href="{{ url_for('static', filename='uploads/' ~ doc.file_path) }}" target="_blank">View</a>
+                {% else %}
+                    Available in Library
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>No uploads yet.</p>
+    {% endif %}
 </body>
 </html>

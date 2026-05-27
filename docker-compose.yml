@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      # Persist uploaded files and vector DB across container restarts
+      - ./static/uploads:/app/static/uploads
+      - ./vector_db:/app/vector_db
+    restart: unless-stopped  # Auto-restarts if it crashes

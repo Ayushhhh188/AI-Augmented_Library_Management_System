@@ -20,6 +20,5 @@ PyPDF2
 python-docx
 pypdf
 
-ollama
-
 gunicorn
+google-genai

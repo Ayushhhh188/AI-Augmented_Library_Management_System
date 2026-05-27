@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
 from functools import wraps
 from datetime import datetime
 import os
@@ -6,15 +6,16 @@ import secrets
 import random
 
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from bson import ObjectId
 from authlib.integrations.flask_client import OAuth
 
 from chatbot.document_loader import load_documents
 from chatbot.chunking import chunk_text
 from chatbot.vector import add_chunks_to_vector_db
 from chatbot.rag_pipeline import run_rag_pipeline
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
@@ -44,37 +45,29 @@ google = oauth.register(
 DEPARTMENTS = ["Engineering", "Safety", "HR", "Operations", "Finance", "Legal", "IT"]
 DOC_TYPES = ["Manual", "Report", "Policy", "Guideline", "Circular", "Notification", "Form"]
 
-def normalize_doc(doc):
-    """
-    Maps whatever shape a document has in Atlas to the fields
-    the templates expect. Handles both old and new schema gracefully.
-    """
-    doc["_id"] = str(doc["_id"])
 
-    # doc_id — use existing or fall back to _id
+def normalize_doc(doc):
+    doc["_id"] = str(doc["_id"])
     doc.setdefault("doc_id", doc.get("_id"))
 
-    # title — use stored title, or fall back to filename
     if not doc.get("title"):
         doc["title"] = doc.get("filename", "Untitled")
 
-    # type / department — use stored value or random realistic default
     if not doc.get("type"):
         doc["type"] = random.choice(DOC_TYPES)
     if not doc.get("department"):
         doc["department"] = random.choice(DEPARTMENTS)
 
-    # is_digital — only True if an actual file exists on disk
-    filename = doc.get("file_path") or doc.get("filename", "")
-    disk_path = os.path.join(UPLOAD_FOLDER, filename)
-    doc["is_digital"] = bool(filename and os.path.exists(disk_path))
-    doc["file_path"] = filename if doc["is_digital"] else None
+    # is_digital — True if file_content exists in MongoDB (works on Render, no disk needed)
+    doc["is_digital"] = bool(doc.get("file_content") or doc.get("is_digital", False))
 
-    # created_at — map upload_date if created_at missing
+    # file_path stores the _id so the view route can fetch from MongoDB
+    doc["file_path"] = doc["_id"] if doc["is_digital"] else None
+
     if not doc.get("created_at"):
         doc["created_at"] = doc.get("upload_date")
 
-    # strip large binary blobs before passing to template
+    # Strip binary blob before passing to template
     doc.pop("file_content", None)
 
     return doc
@@ -170,7 +163,6 @@ def search_title():
 @app.route("/search/recent")
 @login_required
 def search_recent():
-    # Try upload_date first (old schema), fall back to created_at (new schema)
     results = [
         normalize_doc(d) for d in
         documents_col.find().sort("upload_date", -1).limit(10)
@@ -193,15 +185,23 @@ def upload_new():
     save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     document.save(save_path)
 
+    # Read binary content to store in MongoDB (makes files available on Render)
+    with open(save_path, "rb") as f:
+        file_bytes = f.read()
+
+    file_size_kb = round(os.path.getsize(save_path) / 1024, 2)
+
     documents_col.insert_one({
-        "title":       title,
-        "filename":    filename,
-        "file_path":   filename,
-        "type":        doc_type,
-        "department":  department,
-        "is_digital":  True,
-        "uploaded_by": session["user_email"],
-        "created_at":  datetime.utcnow(),
+        "title":        title,
+        "filename":     filename,
+        "file_path":    filename,
+        "file_content": file_bytes,
+        "file_size_kb": file_size_kb,
+        "type":         doc_type,
+        "department":   department,
+        "is_digital":   True,
+        "uploaded_by":  session["user_email"],
+        "created_at":   datetime.utcnow(),
     })
 
     for doc in load_documents():
@@ -212,6 +212,28 @@ def upload_new():
             break
 
     return redirect(url_for("upload_manage"))
+
+
+@app.route("/document/<doc_id>/view")
+@login_required
+def view_document(doc_id):
+    doc = documents_col.find_one({"_id": ObjectId(doc_id)})
+    if not doc or "file_content" not in doc:
+        return "File not found", 404
+
+    filename = doc.get("filename", "document")
+    if filename.endswith(".pdf"):
+        mimetype = "application/pdf"
+    elif filename.endswith(".docx"):
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        mimetype = "application/octet-stream"
+
+    return Response(
+        doc["file_content"],
+        mimetype=mimetype,
+        headers={"Content-Disposition": f"inline; filename={filename}"}
+    )
 
 
 @app.route("/upload/manage")

@@ -51,10 +51,6 @@ Thumbs.db
 *.bson
 *.json
 
-# -------------------------------
-# ChromaDB Vector Database
-# -------------------------------
-vector_db/
 
 # -------------------------------
 # Uploaded Documents

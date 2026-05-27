@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from chatbot.document_loader import load_documents
 from chatbot.chunking import chunk_text
 from chatbot.vector import add_chunks_to_vector_db

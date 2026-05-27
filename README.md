@@ -2,6 +2,9 @@
 
 A full-stack library document management system with an integrated AI chatbot powered by Retrieval-Augmented Generation (RAG). Upload documents, search the library catalog, and ask questions about document contents — all through a clean web interface with Google OAuth authentication.
 
+## Project Live at:
+https://ai-augmented-library-management-system-1.onrender.com
+
 ---
 
 ## Features

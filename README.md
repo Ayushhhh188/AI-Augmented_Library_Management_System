@@ -5,6 +5,16 @@ A full-stack library document management system with an integrated AI chatbot po
 ## Project Live at:
 https://ai-augmented-library-management-system-1.onrender.com
 
+### Some Document Titles that can be searched
+1. Digital Safety Manual
+2. Coal Mining Safety
+3. Emergency Guidelines in Mines
+
+### Queries to Ask the RAG Chatbot from the document contents
+1. What are the immediate steps to take during a mine flooding emergency?
+2. Summarize the safety practices recommended to prevent phishing and banking frauds.
+3. What are the common warning signs of fake job proposal scams?
+4. Compare accident statistics and fatality trends in CIL mines over recent years.
 ---
 
 ## Features

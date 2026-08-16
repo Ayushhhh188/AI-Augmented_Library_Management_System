@@ -102,6 +102,37 @@
       padding: 8px 12px;
       cursor: pointer;
     }
+
+    .chat-suggestions {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .chat-suggestion {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 6px 8px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 12px;
+      color: #333;
+    }
+
+    .chat-suggestion:hover {
+      background: #eef4ff;
+    }
+
+    .chat-sources {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .chat-sources a {
+      color: #1a5fb4;
+    }
   </style>
 </head>
 <body>
@@ -297,15 +328,20 @@
             ">
              <strong>👨 Assistant:</strong><br>
               Hello! How can I help you today?
+              <div class="chat-suggestions">
+                <button type="button" class="chat-suggestion" onclick="sendChat(event, 'Is the Digital Safety Manual present in the library?')">Is the Digital Safety Manual present in the library?</button>
+                <button type="button" class="chat-suggestion" onclick="sendChat(event, 'What does the Waste Disposal Guidelines document say?')">What does the Waste Disposal Guidelines document say?</button>
+                <button type="button" class="chat-suggestion" onclick="sendChat(event, 'What does the Coal Mining Safety document cover?')">What does the Coal Mining Safety document cover?</button>
+              </div>
             </div>
           `;  
        }
     }
 
-    async function sendChat(event) {
+    async function sendChat(event, presetMessage) {
       event.preventDefault();
       const input = document.getElementById('chatbot-input');
-      const message = input.value.trim();
+      const message = (presetMessage || input.value).trim();
       if (!message) return;
 
       const chatBox = document.getElementById('chatbot-messages');
@@ -320,17 +356,16 @@
         });
 
         const data = await response.json();
+        const reply = data.reply || '';
+        let sourcesHtml = '';
+        if (data.sources && data.sources.length) {
+          const links = data.sources.map(function (source) {
+            return `<a href="/document/${source.id}/view" target="_blank">${source.title}</a>`;
+          }).join(', ');
+          sourcesHtml = `<div class="chat-sources"><strong>Documents:</strong> ${links}</div>`;
+        }
 
-        // Replace file names with download links
-        const fileRegex = /\(([^)]+)\)/g;
-        const formattedReply = data.reply.replace(fileRegex, (match, p1) => {
-          if (/\.(pdf|docx?|txt)$/i.test(p1)) {
-            return `(<a href="/static/uploads/${p1}" target="_blank">${p1}</a>)`;
-          }
-          return match;
-        });
-
-        chatBox.innerHTML += `<div><strong>Bot:</strong> ${formattedReply}</div>`;
+        chatBox.innerHTML += `<div><strong>Bot:</strong> ${reply}${sourcesHtml}</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
       } catch (err) {
         chatBox.innerHTML += `<div><strong>Bot:</strong> Something went wrong. Try again later.</div>`;

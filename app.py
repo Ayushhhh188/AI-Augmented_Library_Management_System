@@ -261,8 +261,15 @@ def admin_users():
 def chatbot_query():
     user_input = request.json.get("message")
     try:
-        answer = run_rag_pipeline(user_input)
-        return jsonify({"reply": answer})
+        library_docs = []
+        for d in documents_col.find({}, {"title": 1, "filename": 1}):
+            library_docs.append({
+                "id": str(d["_id"]),
+                "title": d.get("title") or d.get("filename") or "Untitled",
+                "filename": d.get("filename") or "",
+            })
+        result = run_rag_pipeline(user_input, library_docs)
+        return jsonify({"reply": result["answer"], "sources": result["sources"]})
     except Exception as e:
         print("RAG Error:", e)
         return jsonify({"reply": "Error generating response."})

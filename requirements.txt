@@ -4,15 +4,10 @@ pymongo
 authlib
 werkzeug
 requests
-certifi
 chromadb
-langchain
-langchain-core
-langchain-community
 langchain-text-splitters
-transformers
 PyPDF2
 python-docx
-pypdf
 gunicorn
 google-genai
+pytest
